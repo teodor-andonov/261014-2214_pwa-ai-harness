@@ -9,12 +9,7 @@ A small, local-first AI workspace for Windows. One web interface, one agent loop
 1. Install [Node.js 22 or later](https://nodejs.org/).
 2. Clone this repository in VS Code (Source Control → Clone Repository).
 3. Open the repository folder in VS Code.
-4. Open VS Code's integrated terminal and run:
-
-   ```powershell
-   npm start
-   ```
-
+4. **Double-click `start.cmd`** from the repository folder, or run `npm start` in VS Code's terminal.
 5. Open **http://127.0.0.1:4317**.
 6. Click **Continue with ChatGPT**, sign in and approve ChatGPT plan usage.
 7. Choose an available model, start a conversation, or add a local project folder.
