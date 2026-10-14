@@ -11,6 +11,18 @@
   <title>Local AI Harness</title>
 </head>
 <body>
+  <div id="workspace-setup" class="setup-screen" hidden>
+    <div class="setup-card">
+      <div class="welcome-mark">✳</div>
+      <div class="dialog-eyebrow">FIRST STEP · YOUR DATA</div>
+      <h1>Select your workspace</h1>
+      <p>All chats, projects, modes and settings live in one folder you own. Copy it to another computer to bring the same workspace with you.</p>
+      <label for="workspace-path">Local folder path</label>
+      <input id="workspace-path" type="text" placeholder="C:\\Users\\You\\Documents\\AI Workspace" autocomplete="off" spellcheck="false">
+      <button id="choose-workspace" class="button-primary">Open or create workspace →</button>
+      <p class="setup-footnote">Choose an empty folder to create a workspace, or an existing AI Harness workspace. You'll select it again when starting the server on another computer.</p>
+    </div>
+  </div>
   <div class="shell">
     <aside id="sidebar" class="sidebar">
       <div class="brand"><div class="mark">✳</div><span>AI Harness</span><span class="version">01</span></div>
@@ -39,7 +51,11 @@
       </section>
       <div class="composer-wrap">
         <div class="composer">
-          <div class="modes" role="group" aria-label="Agent mode"><button class="mode active" data-mode="chat">Chat</button><button class="mode" data-mode="work">Work</button><button class="mode" data-mode="code">Code</button></div>
+          <div class="modes" role="group" aria-label="Agent mode">
+            <div id="mode-buttons" class="mode-buttons"></div>
+            <button id="edit-mode" class="mode-action" title="Edit selected mode" aria-label="Edit mode">⚙</button>
+            <button id="add-mode" class="mode-action" title="Create mode" aria-label="Create mode">＋</button>
+          </div>
           <textarea id="prompt" rows="2" placeholder="Ask anything…" aria-label="Message"></textarea>
           <div class="composer-footer"><span id="hint">Your conversations stay on this computer.</span><button id="send" class="send" aria-label="Send" title="Send message">↑</button></div>
         </div>
@@ -47,6 +63,22 @@
       </div>
     </main>
   </div>
+  <dialog id="mode-editor">
+    <form method="dialog" id="mode-form">
+      <div class="dialog-eyebrow">MODE CONFIGURATION · SAVED IN WORKSPACE</div>
+      <h2 id="mode-editor-title">Edit mode</h2>
+      <label class="field-label" for="mode-name">Name</label>
+      <input id="mode-name" class="field-input" type="text" maxlength="70" required>
+      <label class="field-label" for="mode-prompt">Base prompt</label>
+      <textarea id="mode-prompt" class="field-input" rows="7" required></textarea>
+      <div class="field-label">Tools</div>
+      <label class="checkbox-field"><input id="tool-list" type="checkbox"> List project files</label>
+      <label class="checkbox-field"><input id="tool-read" type="checkbox"> Read project files</label>
+      <label class="checkbox-field"><input id="tool-write" type="checkbox"> Write project files (approval required)</label>
+      <p class="dialog-warning">Only currently implemented tools appear here. Terminal and web search are not available yet.</p>
+      <div class="dialog-actions"><button value="cancel" class="button-secondary">Cancel</button><button value="save" class="button-primary">Save mode</button></div>
+    </form>
+  </dialog>
   <dialog id="approval">
     <form method="dialog">
       <div class="dialog-eyebrow">LOCAL FILE CHANGE</div>

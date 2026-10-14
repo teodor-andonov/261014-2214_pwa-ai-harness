@@ -1,27 +1,18 @@
-# Instructions for coding agents
+# Agent instructions
 
-This is a **local-first Windows AI harness**, not a cloud-hosted web application. Use Node.js 22+ and the native web stack where possible. Keep the architecture small and understandable.
-
-## Record the work
-
-For every substantial development pass, add a Markdown note to `/logs` named **YYMMDD-HHss_short-title.md**, using the user's chosen filename pattern (four time digits). Never overwrite an earlier log. Include:
-- Goal and plan
-- What changed (history)
-- Current state, including tested vs untested functionality
-- Decisions and reasoning
-- Issues, future ideas, next concrete steps
-
-Do not store credentials, chat transcripts, personal file contents, or sensitive project paths in committed logs.
+This repository contains **app code**, not the user's portable workspace. The application never owns user data. Never write conversations, OAuth tokens, session credentials, project content or preferences into the repository or browser storage.
 
 ## Product principles
+- On every cold launch, **ask user to select a workspace folder**. That folder is the source of truth. Copying it should restore settings, modes, chats and internal project files.
+- Chat and Agent are initial **editable mode configurations**, not separate runtimes. Modes store `name`, `prompt`, and allowed `tools` as JSON in the selected workspace.
+- Tool authorisation must be enforced by server-side allowed lists per response, not just user-visible buttons.
+- OAuth tokens are session-only by default. Never log or commit them.
+- Internal projects use relative paths resolved within the selected workspace. External project folders are explicit links and not portable.
+- The UI is a PWA, backed by a localhost Node service. Do not assume a browser-only PWA can execute code on a local PC.
+- Keep the code small, keep tools sandboxed/project-scoped, and require real approvals before writes. Shell execution requires an isolated worker design first.
 
-1. One agent runtime, multiple modes (chat, work, code, eventually CAD).
-2. Own conversation/project schema; do not couple core storage to an inference provider.
-3. Local-by-default persistence, explicit project scope, per-action approval for writes.
-4. Never claim account authentication or end-to-end inference works without a real test.
-5. Keep code and user data separate; everything in `.local/` is ignored by Git.
-6. Prefer understandable modules over extra dependencies. Build in small, verifiable steps.
+## Development journal
+Every substantial change must create a **new** `/logs/YYMMDD-HHss_short-title.md`. Include goal, implementation history, verified current state, key decisions, risks and next concrete steps. Do not invent test results.
 
-## Before merging changes
-
-Run `npm test` and `node --check server.mjs` and `node --check web/app.js`. Review any tool expansion for path traversal, symlink attacks, prompt injection and user approval semantics.
+## Checks
+Run `npm test`, `node --check server.mjs`, and `node --check web/app.js`. Pay attention to path traversal, symlinks, permissions, prompt injection and OAuth scope validation.

@@ -1,5 +1,5 @@
 const $ = selector => document.querySelector(selector);
-const state = { projects: [], threads: [], projectId: "", threadId: null, mode: "chat", model: "", connected: false, busy: false };
+const state = { projects: [], threads: [], modes: [], settings: {}, projectId: "", threadId: null, mode: "chat", model: "", connected: false, busy: false, creatingMode: false };
 async function api(path, method = "GET", body) {
   const r = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
   const data = await r.json();
@@ -14,6 +14,25 @@ function updateContext() {
   $("#prompt").placeholder = state.mode === "chat" ? "Ask anything…" : "Ask about your project…";
   $("#hint").textContent = state.mode === "chat" ? "Your conversations stay on this computer." : "Local file changes require your approval.";
   $("#send").disabled = state.busy || !state.connected || !state.model;
+}
+function renderModes() {
+  const container=$("#mode-buttons"); container.replaceChildren();
+  for(const m of state.modes) {
+    const b=document.createElement("button");
+    b.className="mode"+(state.mode===m.id?" active":"");
+    b.textContent=m.name; b.title=m.prompt.slice(0,120);
+    b.addEventListener("click",async()=>{
+      if(state.busy) return;
+      state.mode=m.id; renderModes(); updateContext();
+      try{state.settings=(await api("/api/settings","PUT",{defaultMode:m.id})).settings;}catch(e){alert(e.message);}
+    });
+    container.append(b);
+  }
+}
+async function loadModes() {
+  state.modes=(await api("/api/modes")).modes;
+  if (!state.modes.some(m=>m.id===state.mode)) state.mode=state.modes[0]?.id||"chat";
+  renderModes();
 }
 function renderProjects() {
   const el = $("#project");
@@ -86,7 +105,7 @@ async function loadModels() {
     select.replaceChildren();
     if (!models.length) throw Error("No eligible models found");
     models.forEach(m => select.add(new Option(m.name, m.id)));
-    const stored = sessionStorage.getItem("preferred-model");
+    const stored = state.settings.preferredModel;
     state.model = models.find(m => m.id === stored)?.id || models[0].id;
     select.value = state.model;
   } catch (e) {
@@ -167,30 +186,72 @@ async function initialize() {
   state.connected = s.connected;
   $("#account").textContent = state.connected ? (s.email || "ChatGPT connected") : "Continue with ChatGPT";
   $("#account").classList.toggle("connected", state.connected);
-  state.projects = (await api("/api/projects")).projects;
+  const w=await api("/api/workspace");
+  if(!w.selected) { $("#workspace-setup").hidden=false; return; }
+  $("#workspace-setup").hidden=true;
+  state.settings=(await api("/api/settings")).settings;
+  state.mode=state.settings.defaultMode||"chat";
+  await loadModes();
+  state.projects=(await api("/api/projects")).projects;
   renderProjects(); await loadThreads();
-  if (state.connected) await loadModels(); else updateContext();
+  if(state.connected) await loadModels(); else updateContext();
 }
 $("#project").addEventListener("change", e => { if (state.busy) { e.target.value = state.projectId; return; } state.projectId = e.target.value; state.threadId = null; resetConversation(); updateContext(); });
 $("#add-project").addEventListener("click", async () => {
   if (state.busy) return;
-  const folder = prompt("Full local folder path (for example C:\\Users\\You\\Projects\\Demo):");
-  if (!folder) return;
-  const name = prompt("Project name:", folder.split(/[\\/]/).filter(Boolean).pop());
-  if (!name) return;
-  try { const { project } = await api("/api/projects", "POST", { name, path: folder }); state.projects.push(project); state.projectId = project.id; state.threadId = null; renderProjects(); resetConversation(); }
-  catch (e) { alert(e.message); }
+  const name=prompt("Project name:");
+  if(!name?.trim()) return;
+  let folder="";
+  if(confirm("Link an EXTERNAL project folder?\n\nCancel = create a fully portable project inside your workspace.\nOK = point to an existing local folder (not automatically copied).")) {
+    folder=prompt("Full path of existing project folder:")||"";
+    if(!folder.trim()) return;
+  }
+  try { const {project}=await api("/api/projects","POST",{name,path:folder}); state.projects.push(project);state.projectId=project.id;state.threadId=null;renderProjects();resetConversation(); }
+  catch(e){alert(e.message);} 
 });
 $("#new-chat").addEventListener("click", newThread);
 $("#sidebar-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
 $("#send").addEventListener("click", sendMessage);
 $("#prompt").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-$("#model").addEventListener("change", e => { state.model = e.target.value; sessionStorage.setItem("preferred-model", state.model); updateContext(); });
-document.querySelectorAll(".mode").forEach(button => button.addEventListener("click", () => {
-  state.mode = button.dataset.mode;
-  document.querySelectorAll(".mode").forEach(b => b.classList.toggle("active", b === button));
-  updateContext();
-}));
+$("#model").addEventListener("change", async e => {
+  state.model=e.target.value; updateContext();
+  try { state.settings=(await api("/api/settings","PUT",{preferredModel:state.model})).settings; } catch(err){alert(err.message);}
+});
+function openModeEditor(creating) {
+  if(state.busy) return;
+  state.creatingMode=creating;
+  const mode=creating?{name:"Custom",prompt:"You are a helpful assistant.",tools:[]}:state.modes.find(m=>m.id===state.mode);
+  if(!mode) return;
+  $("#mode-editor-title").textContent=creating?"Create mode":"Edit "+mode.name;
+  $("#mode-name").value=mode.name; $("#mode-prompt").value=mode.prompt;
+  $("#tool-list").checked=mode.tools.includes("list_files");
+  $("#tool-read").checked=mode.tools.includes("read_file");
+  $("#tool-write").checked=mode.tools.includes("write_file");
+  $("#mode-editor").showModal();
+}
+$("#edit-mode").addEventListener("click",()=>openModeEditor(false));
+$("#add-mode").addEventListener("click",()=>openModeEditor(true));
+$("#mode-editor").addEventListener("close",async()=>{
+  if($("#mode-editor").returnValue!=="save")return;
+  const payload={name:$("#mode-name").value,prompt:$("#mode-prompt").value,tools:[
+    ...($("#tool-list").checked?["list_files"]:[]),
+    ...($("#tool-read").checked?["read_file"]:[]),
+    ...($("#tool-write").checked?["write_file"]:[])
+  ]};
+  try {
+    const result=await api(state.creatingMode?"/api/modes":"/api/modes/"+state.mode,state.creatingMode?"POST":"PUT",payload);
+    if(state.creatingMode)state.mode=result.mode.id;
+    await loadModes(); updateContext();
+    state.settings=(await api("/api/settings","PUT",{defaultMode:state.mode})).settings;
+  }catch(e){alert(e.message);}
+});
+$("#choose-workspace").addEventListener("click",async()=>{
+  const folder=$("#workspace-path").value.trim();
+  if(!folder)return alert("Enter a local folder path first.");
+  try { await api("/api/workspace","POST",{path:folder}); await initialize(); }
+  catch(e){alert(e.message);}
+});
+$("#workspace-path").addEventListener("keydown",e=>{if(e.key==="Enter")$("#choose-workspace").click();});
 document.querySelectorAll(".examples button").forEach(button => button.addEventListener("click", () => { $("#prompt").value = button.dataset.prompt; $("#prompt").focus(); }));
 $("#account").addEventListener("click", async () => {
   try { const { url } = await api("/api/auth/start", "POST", {}); location.assign(url); } catch (e) { alert(e.message); }
