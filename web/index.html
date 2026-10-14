@@ -27,7 +27,7 @@
     <aside id="sidebar" class="sidebar">
       <div class="brand"><div class="mark">✳</div><span>AI Harness</span><span class="version">01</span></div>
       <div class="section-label">WORKSPACE</div>
-      <div class="project-line"><select id="project" aria-label="Active project"><option value="">General</option></select><button id="add-project" class="icon-button" title="Add local project" aria-label="Add project">+</button></div>
+      <div class="project-line"><select id="project" aria-label="Active project"><option value="">General</option></select><button id="edit-project" class="icon-button" title="Edit selected project" aria-label="Edit project folders">⚙</button><button id="add-project" class="icon-button" title="Add project" aria-label="Add project">+</button></div>
       <button id="new-chat" class="new-chat"><span>＋</span> New conversation</button>
       <div class="section-label history-label">CONVERSATIONS</div>
       <div id="history" class="history"></div>
@@ -63,6 +63,18 @@
       </div>
     </main>
   </div>
+  <dialog id="project-editor">
+    <form method="dialog">
+      <div class="dialog-eyebrow">PROJECT · EXTERNAL FOLDER ACCESS</div>
+      <h2 id="project-editor-title">Project</h2>
+      <label class="field-label" for="project-name">Project name</label>
+      <input id="project-name" class="field-input" type="text" maxlength="80" required>
+      <div class="folder-heading"><span class="field-label">Linked folders</span><button type="button" id="add-folder-row" class="mode-action">＋ Add folder</button></div>
+      <div id="project-folder-rows" class="project-folder-rows"></div>
+      <p class="dialog-warning">The harness stores references only — not project files. Read/write access still asks you before every file change. Linked folders remain on this computer.</p>
+      <div class="dialog-actions"><button value="cancel" class="button-secondary">Cancel</button><button value="save" class="button-primary">Save project</button></div>
+    </form>
+  </dialog>
   <dialog id="mode-editor">
     <form method="dialog" id="mode-form">
       <div class="dialog-eyebrow">MODE CONFIGURATION · SAVED IN WORKSPACE</div>

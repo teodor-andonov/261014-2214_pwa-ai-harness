@@ -3,11 +3,11 @@
 This repository contains **app code**, not the user's portable workspace. The application never owns user data. Never write conversations, OAuth tokens, session credentials, project content or preferences into the repository or browser storage.
 
 ## Product principles
-- On every cold launch, **ask user to select a workspace folder**. That folder is the source of truth. Copying it should restore settings, modes, chats and internal project files.
+- On every cold launch, **ask user to select a workspace folder**. That folder is the source of truth. Copying it should restore settings, modes, chats and project references, not external project contents.
 - Chat and Agent are initial **editable mode configurations**, not separate runtimes. Modes store `name`, `prompt`, and allowed `tools` as JSON in the selected workspace.
-- Tool authorisation must be enforced by server-side allowed lists per response, not just user-visible buttons.
+- Tool authorisation must be enforced by server-side allowed lists per response AND live per-folder grants, not just user-visible buttons. Per-write approval is required even after a read/write folder grant.
 - OAuth tokens are session-only by default. Never log or commit them.
-- Internal projects use relative paths resolved within the selected workspace. External project folders are explicit links and not portable.
+- **Projects never own files in the harness workspace.** Each project references zero or more external folders. Folder grants are explicit and individually read-only or read/write. Do not grant agent tool access to the workspace folder or its ancestors/descendants. Preserve project IDs and chat associations when editing folder references.
 - The UI is a PWA, backed by a localhost Node service. Do not assume a browser-only PWA can execute code on a local PC.
 - Keep the code small, keep tools sandboxed/project-scoped, and require real approvals before writes. Shell execution requires an isolated worker design first.
 

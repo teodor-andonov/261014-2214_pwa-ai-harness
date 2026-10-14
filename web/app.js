@@ -14,6 +14,7 @@ function updateContext() {
   $("#prompt").placeholder = state.mode === "chat" ? "Ask anything…" : "Ask about your project…";
   $("#hint").textContent = state.mode === "chat" ? "Your conversations stay on this computer." : "Local file changes require your approval.";
   $("#send").disabled = state.busy || !state.connected || !state.model;
+  $("#edit-project").disabled = !state.projectId || state.busy;
 }
 function renderModes() {
   const container=$("#mode-buttons"); container.replaceChildren();
@@ -197,17 +198,63 @@ async function initialize() {
   if(state.connected) await loadModels(); else updateContext();
 }
 $("#project").addEventListener("change", e => { if (state.busy) { e.target.value = state.projectId; return; } state.projectId = e.target.value; state.threadId = null; resetConversation(); updateContext(); });
-$("#add-project").addEventListener("click", async () => {
-  if (state.busy) return;
-  const name=prompt("Project name:");
-  if(!name?.trim()) return;
-  let folder="";
-  if(confirm("Link an EXTERNAL project folder?\n\nCancel = create a fully portable project inside your workspace.\nOK = point to an existing local folder (not automatically copied).")) {
-    folder=prompt("Full path of existing project folder:")||"";
-    if(!folder.trim()) return;
-  }
-  try { const {project}=await api("/api/projects","POST",{name,path:folder}); state.projects.push(project);state.projectId=project.id;state.threadId=null;renderProjects();resetConversation(); }
-  catch(e){alert(e.message);} 
+function addFolderRow(folder={}) {
+  const row=document.createElement("div");
+  row.className="folder-row";
+  row.dataset.id=folder.id||"";
+  const name=document.createElement("input");
+  name.className="field-input"; name.placeholder="Folder label"; name.value=folder.name||"";
+  name.setAttribute("aria-label","Folder label");
+  const folderPath=document.createElement("input");
+  folderPath.className="field-input path-input";
+  folderPath.placeholder="C:\\Users\\You\\Projects\\MyProject";
+  folderPath.value=folder.path||"";
+  folderPath.setAttribute("aria-label","Absolute folder path");
+  const permission=document.createElement("select");
+  permission.className="field-input";
+  permission.setAttribute("aria-label","Folder permission");
+  permission.add(new Option("Read only","read"));
+  permission.add(new Option("Read + write (approval required)","read_write"));
+  permission.value=folder.permission||"read";
+  const remove=document.createElement("button");
+  remove.type="button"; remove.className="mode-action remove-folder";
+  remove.textContent="×"; remove.title="Remove folder";remove.setAttribute("aria-label","Remove folder");
+  remove.addEventListener("click",()=>row.remove());
+  row.append(name,folderPath,permission,remove);
+  $("#project-folder-rows").append(row);
+}
+let editingProjectId=null;
+function openProjectEditor(id=null) {
+  if(state.busy) return;
+  editingProjectId=id;
+  const p=id?state.projects.find(x=>x.id===id):null;
+  $("#project-editor-title").textContent=p?"Project settings":"New project";
+  $("#project-name").value=p?.name||"";
+  $("#project-folder-rows").replaceChildren();
+  for(const folder of p?.folders||[]) addFolderRow(folder);
+  if(!p) addFolderRow();
+  $("#project-editor").showModal();
+}
+$("#add-project").addEventListener("click",()=>openProjectEditor());
+$("#edit-project").addEventListener("click",()=>{if(state.projectId)openProjectEditor(state.projectId);});
+$("#add-folder-row").addEventListener("click",()=>addFolderRow());
+$("#project-editor").addEventListener("close",async()=>{
+  if($("#project-editor").returnValue!=="save") return;
+  const folders=Array.from($("#project-folder-rows").children).map(row=>({
+    ...(row.dataset.id?{id:row.dataset.id}:{}),
+    name:row.children[0].value,
+    path:row.children[1].value,
+    permission:row.children[2].value
+  }));
+  const payload={name:$("#project-name").value,folders};
+  try {
+    const {project}=await api(editingProjectId?"/api/projects/"+editingProjectId:"/api/projects",editingProjectId?"PUT":"POST",payload);
+    const index=state.projects.findIndex(x=>x.id===project.id);
+    if(index<0)state.projects.push(project);else state.projects[index]=project;
+    if(!editingProjectId){state.projectId=project.id;state.threadId=null;resetConversation();}
+    renderProjects();
+    renderThreads();
+  }catch(e){alert(e.message);}
 });
 $("#new-chat").addEventListener("click", newThread);
 $("#sidebar-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
