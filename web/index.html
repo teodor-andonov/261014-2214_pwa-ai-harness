@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#161718">
+  <meta name="description" content="A personal, local-first AI workspace">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="stylesheet" href="/style.css">
+  <title>Local AI Harness</title>
+</head>
+<body>
+  <div class="shell">
+    <aside id="sidebar" class="sidebar">
+      <div class="brand"><div class="mark">✳</div><span>AI Harness</span><span class="version">01</span></div>
+      <div class="section-label">WORKSPACE</div>
+      <div class="project-line"><select id="project" aria-label="Active project"><option value="">General</option></select><button id="add-project" class="icon-button" title="Add local project" aria-label="Add project">+</button></div>
+      <button id="new-chat" class="new-chat"><span>＋</span> New conversation</button>
+      <div class="section-label history-label">CONVERSATIONS</div>
+      <div id="history" class="history"></div>
+      <div class="sidebar-bottom"><div class="status-dot"></div><span id="sidebar-status">Local workspace</span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="left-tools"><button id="sidebar-toggle" class="icon-button mobile-only" aria-label="Toggle sidebar">☰</button><span id="context-name">General workspace</span><span class="subtle-divider">/</span><span class="muted" id="thread-name">New conversation</span></div>
+        <div class="right-tools"><select id="model" aria-label="AI model"><option value="">Model unavailable</option></select><button id="account" class="account-button">Continue with ChatGPT</button></div>
+      </header>
+      <section class="content" id="content">
+        <div class="conversation" id="conversation">
+          <div id="welcome" class="welcome">
+            <div class="welcome-mark">✳</div>
+            <h1>One workspace.<br><span>Any kind of work.</span></h1>
+            <p>Chat, explore projects, and build with your own local agent.</p>
+            <div class="examples"><button data-prompt="Help me plan my next project.">Plan something</button><button data-prompt="Explore the current project and explain its structure.">Explore a project</button><button data-prompt="Review this project's structure and suggest improvements.">Review code</button></div>
+          </div>
+          <div id="messages" class="messages" aria-live="polite"></div>
+        </div>
+      </section>
+      <div class="composer-wrap">
+        <div class="composer">
+          <div class="modes" role="group" aria-label="Agent mode"><button class="mode active" data-mode="chat">Chat</button><button class="mode" data-mode="work">Work</button><button class="mode" data-mode="code">Code</button></div>
+          <textarea id="prompt" rows="2" placeholder="Ask anything…" aria-label="Message"></textarea>
+          <div class="composer-footer"><span id="hint">Your conversations stay on this computer.</span><button id="send" class="send" aria-label="Send" title="Send message">↑</button></div>
+        </div>
+        <div class="footnote">Local-first prototype · Explicit approval before file changes</div>
+      </div>
+    </main>
+  </div>
+  <dialog id="approval">
+    <form method="dialog">
+      <div class="dialog-eyebrow">LOCAL FILE CHANGE</div>
+      <h2>Approve file write?</h2>
+      <p id="approval-path"></p>
+      <pre id="approval-preview"></pre>
+      <p class="dialog-warning">Review the proposed content. Approving will overwrite the specified file.</p>
+      <div class="dialog-actions"><button value="deny" class="button-secondary">Deny</button><button value="approve" class="button-primary">Approve write</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

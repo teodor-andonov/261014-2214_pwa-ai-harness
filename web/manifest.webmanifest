@@ -1,0 +1,9 @@
+{
+  "name": "Local AI Harness",
+  "short_name": "AI Harness",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#171818",
+  "theme_color": "#171818",
+  "icons": [{"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}
